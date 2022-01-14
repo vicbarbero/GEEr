@@ -272,6 +272,8 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 			ajustePorcentajeTramosMedia -= Math.round(tramosMedia[2]*100/(linea-1));
 			sHTML += '<tr><td>Media en intervalo [7, 9):</td><td align="center">'+tramosMedia[3]+'</td><td align="center">'+Math.round(tramosMedia[3]*100/(linea-1))+"%</td></tr>";
 			ajustePorcentajeTramosMedia -= Math.round(tramosMedia[3]*100/(linea-1));
+			if (ajustePorcentajeTramosMedia < 0)
+				ajustePorcentajeTramosMedia = 0;
 			sHTML += '<tr><td>Media en intervalo [9, 10]:</td><td align="center">'+tramosMedia[4]+'</td><td align="center">'+ajustePorcentajeTramosMedia+"%</td></tr></table>";
 
 
