@@ -11,3 +11,5 @@ Para utilizar la aplicación, haz click sobre el botón verde *Code* y escoge la
 
 GEEr no almacena ni envía por internet ningún dato que facilites. Utiliza únicamente el motor JavaScript de tu navegador. Se distribuye con licencia GPL.
 
+# *Changelog*
+- Versión actual disponible: v1 - publicada el 14/01/2022 - primera versión
