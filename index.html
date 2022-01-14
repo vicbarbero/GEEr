@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<!--
+
+GEEr - Generador de Estadísticas de Evaluación para raíces - v1
+Publicado bajo licencia GPL
+
+GEEr es una aplicación que permite obtener estadísticas de evaluación a partir de los datos exportados desde raíces, la aplicación de gestión educativa de la Comunidad de Madrid.
+
+	-->
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+	<title>GEER -v1</title>
+	<style>
+		table { border-collapse: collapse }
+		body { font-family: sans-serif;
+			border-left: 10px solid #FB9039;
+			margin: 0;
+			padding: 20px;
+			background: linear-gradient(45deg, #fff, #fff3e8);
+			color: #010100 }
+		iframe { background: #fff }
+		h1 { font-variant:small-caps;
+			border-bottom:1px solid #000;
+			margin-bottom:10pt }
+		h2 { color: #6e3100 }
+		p { text-align: justify;
+			margin-left:10pt }
+		i { color: #994500 }
+		a { text-decoration: none;
+			color: #994500 }
+		a.bt { text-decoration: none;
+			color: #FFF;
+			background: #FB9039;
+			border-radius: 4pt;
+			padding: 5pt;
+		}
+		a.bt:hover { background: #994500 }
+		#entrada {
+			background: #ffd5b3;
+			padding: 13pt;
+			line-height: 20pt;
+			width: 450pt;
+		}
+	</style>
+	<script>
+
+		const reader = new FileReader();
+
+		reader.onload = (e) => {
+			let fichero = e.target.result;
+			let lineas = fichero.split(/\r?\n/);
+
+			let linea = 0;
+
+			//Este array almacena datos para cada materia:
+			//	0 -> Abreviatura
+			//	1 -> Núm. alumnado calificado
+			//  2 -> Suma de calificaciones
+			//  3 -> Alumnado que supera
+			//	4 -> Otras anotaciones en calificaciones (CV, NP, NE, EX...)
+			let materias = [];
+
+			//Este array almacena datos para cada alumno/a:
+			//	0 -> Nombre del alumno/a
+			//	1 -> Nota media
+			let alumnado = [];
+
+			//Este array cuenta cuánto alumnado hay en cada tramo de materias suspensas:
+			//	0 -> Ninguna materia suspensa
+			//	1 -> 1 o 2 materias suspensas
+			//	2 -> 3 o 4 materias suspensas
+			// 	3 -> 5 o más materias suspensas
+			let tramosSuspensos = [0, 0, 0, 0];
+
+			//Este array cuenta cuánto alumnado hay en cada tramo por media de calificaciones:
+			//	0 -> Intervalo [0, 2.5)
+			//	1 -> Intervalo [2.5, 5)
+			//	2 -> Intervalo [5, 7)
+			//	3 -> Intervalo [7, 9)
+			//	4 -> Intervalo [9, 10]
+			let tramosMedia = [0, 0, 0, 0, 0];
+
+			let sumaSuspensos = 0;
+
+			lineas.forEach((l) => {
+
+				let columna = 0;
+				
+				let tokensLinea = l.split(",");
+
+				//La primera línea tiene el encabezado con la abreviatura de las materias
+				if (linea == 0) {
+					
+					tokensLinea.forEach((t) => {
+						
+						if (columna == 0) {
+
+							//La primera columna de la primera línea tiene un texto fijo que nos permite validar si el CSV es correcto.
+							if (t !== "\"Alumno/a\"") {
+								window.alert('Ese fichero .csv no parece una exportación de evaluación de raíces.')
+								return;
+							}
+
+						} else {
+
+							//Se almacena en el array materias la informacion de cada materia.
+							materias[columna-1] = [t.substring(1,t.length-1), 0, 0, 0, 0];
+						}
+
+						columna++;
+
+					});
+
+				} else {
+
+					let sumaCalificAlum = 0;
+					let cuentaCalificAlum = 0;
+					let cuentaSuspensos = 0;
+
+					tokensLinea.forEach((t) => {
+
+						//La primera columna de cada línea tiene el nombre del alumno/a
+						//Al partir la línea usando comas, se crea un nuevo token con el nombre del alumno/a
+						if (columna == 0) {
+
+							alumnado[linea-1] = [t.substring(1,t.length)];
+
+						} else if (columna == 1) {
+
+							alumnado[linea-1][0] += ', '+t.substring(1, t.length-1);
+
+						} else if (columna < materias.length+2) {
+
+							let calificacion = parseInt(t.substring(1, t.length-1));
+
+							if (!isNaN(calificacion)) {
+								
+								materias[columna-2][1]++; //Un alumno/a calificado más.
+								materias[columna-2][2] += calificacion; //Se acumula la calificación obtenida.
+								sumaCalificAlum += calificacion;
+								cuentaCalificAlum++;
+
+								if (calificacion > 4) {
+									materias[columna-2][3]++;
+								} else {
+									cuentaSuspensos++;
+								}
+
+							} else {
+
+								if (t === '10-M') {
+									materias[columna-2][1]++; //Un alumno/a calificado más.
+									materias[columna-2][2] += 10;
+									materias[columna-2][3]++; //Se acumula el 10.
+									sumaCalificAlum += calificacion;
+									cuentaCalificAlum++;
+
+								//Si la columna está vacía, el token son solo dos comillas
+								} else if ((t === 'NP') || (t === 'NE')) {
+									materias[columna-2][4]++;
+									cuentaSuspensos++;
+								
+								} else if (t.length > 2) {
+									materias[columna-2][4]++;
+								}
+							}
+
+						} else {
+							window.alert('La linea '+(linea+1)+' tiene un número de elementos mayor que el esperado. Esto, además de indicar que el fichero ha sido manipulado, puede provocar errores en el cálculo de estadísticas.');
+							return;
+						}
+						
+						columna++;
+
+					});
+
+					if (columna-2 != materias.length) {
+						window.alert('La línea '+(linea+1)+' tiene un número de elementos menor que el esperado. Esto, además de indicar que el fichero ha sido manipulado, puede provocar errores en el cálculo de estadísticas.');
+						return;
+					}
+					let notaMedia = (sumaCalificAlum/cuentaCalificAlum).toFixed(2);
+					alumnado[linea-1][1] = notaMedia;
+
+					if (notaMedia >= 9)
+						tramosMedia[4]++;
+					else if (notaMedia >= 7)
+						tramosMedia[3]++;
+					else if (notaMedia >= 5)
+						tramosMedia[2]++;
+					else if (notaMedia >= 2.5)
+						tramosMedia[1]++;
+					else
+						tramosMedia[0]++;
+
+					if (cuentaSuspensos > 4)
+						tramosSuspensos[3]++;
+					else
+						tramosSuspensos[Math.floor((cuentaSuspensos+1)/2)]++;
+
+					sumaSuspensos += cuentaSuspensos;
+					
+				}
+				
+				linea++;
+
+			});
+
+			//Llegado este punto, se han procesado todas las líneas del fichero.
+
+			sHTML = '<!DOCTYPE html><head><style>body{font-family:sans-serif}table{border-collapse:collapse}td.bi{border-bottom:1px solid #000}td.bd{border-right:1px solid #000}td.bip{border-bottom:1px dotted #333}</style></head><body>';
+			sHTML += '<div style="border-bottom:1px solid #000;width:500pt;font-size:x-large"><div id="cUnidad" style="display:inline;font-size:xx-large;font-weight:bold">';
+			if (document.getElementById('unidad').value.length > 0)
+				sHTML += document.getElementById('unidad').value + ' - ';
+			sHTML += '</div>ESTADÍSTICAS DE LA <strong>'+document.getElementById('evaluac').value+'</strong></div>';
+			sHTML += (linea-1)+' alumnos y alumnas - '+materias.length+' materias, ámbitos o módulos.<br /><br />';
+			sHTML += '<table width="650pt"><tr><td class="bi bd" valign="bottom">Materia, ámbito o módulo</td><td align="center" class="bi bd">Alumnado<br />calific.</td><td align="center" class="bi bd">Calific.<br />media</td><td colspan="2" class="bi bd" valign="bottom" align="center">Superan</td><td colspan="2" class="bi bd" valign="bottom" align="center">No superan</td><td align="center" class="bi" valign="bottom">Otros</td></tr>';
+
+			let fila = 1;
+
+			materias.forEach((m) => {
+
+				let cf = '';
+				if (fila++%2==0)
+					cf = ' bip';
+
+				sHTML += '<tr><td width="*" class="bd'+cf+'">'+nombreMateria(m[0])+"</td>";
+				sHTML += '<td align="center" width="60pt" class="bd'+cf+'">'+m[1]+"</td>";
+				if (m[1] > 0) {
+					sHTML += '<td align="center" width="60pt" class="bd'+cf+'">'+(m[2]/m[1]).toFixed(2)+"</td>";
+					let porcentajeSuperan = Math.round(m[3]*100/m[1]);
+					sHTML += '<td align="center" width="45pt" class="'+cf+'">'+m[3]+'</td><td align="center" width="45pt" class="bd'+cf+'">'+porcentajeSuperan+"%</td>";
+					sHTML += '<td align="center" width="45pt" class="'+cf+'">'+(m[1]-m[3])+'</td><td align="center" width="45pt" class="bd'+cf+'">'+(100-porcentajeSuperan)+"%</td>";
+					sHTML += '<td align="center" width="45pt" class="'+cf+'">'+m[4]+"</td></tr>";
+				} else {
+					sHTML += '<td class="bd '+cf+'"></td><td class="'+cf+'"></td><td class="bd '+cf+'"></td><td class="'+cf+'"></td><td class="bd '+cf+'"></td><td class="'+cf+'"></td></tr>';
+				}
+
+			});
+
+			sHTML += '</table><br /><div style="width:300px; border-bottom: 1px solid black;">Calificación del alumnado:</div><table style="margin-left: 47px">';
+			let ajustePorcentajeTramosCalificacion = 100;
+			if (materias.length > 4) {
+				sHTML += '<tr><td>5 o más suspensos:</td><td align="center">'+tramosSuspensos[3]+'</td><td align="center">'+Math.round(tramosSuspensos[3]*100/(linea-1))+"%</td></tr>";
+				ajustePorcentajeTramosCalificacion -= Math.round(tramosSuspensos[3]*100/(linea-1));	
+			}
+			if (materias.length > 2) {
+				sHTML += '<tr><td>3 o 4 suspensos:</td><td align="center">'+tramosSuspensos[2]+'</td><td align="center">'+Math.round(tramosSuspensos[2]*100/(linea-1))+"%</td></tr>";
+				ajustePorcentajeTramosCalificacion -= Math.round(tramosSuspensos[2]*100/(linea-1));
+			}
+			if (materias.length > 1) {
+				sHTML += '<tr><td>1 o 2 suspensos:</td><td align="center">'+tramosSuspensos[1]+'</td><td align="center">'+Math.round(tramosSuspensos[1]*100/(linea-1))+"%</td></tr>";
+				ajustePorcentajeTramosCalificacion -= Math.round(tramosSuspensos[1]*100/(linea-1));
+			}
+			sHTML += '<tr><td width="160">Todo superado:</td><td align="center" width="35">'+tramosSuspensos[0]+'</td><td align="center">'+ajustePorcentajeTramosCalificacion+"%</td></tr></table><br />";
+
+			sHTML += 'Media de suspensos por alumno/a: '+(sumaSuspensos/(linea-1)).toFixed(2);
+
+			//	0 -> Intervalo [0, 2.5)
+			//	1 -> Intervalo [2.5, 5)
+			//	2 -> Intervalo [5, 7)
+			//	3 -> Intervalo [7, 9)
+			//	4 -> Intervalo [9, 10]			
+
+			sHTML += '<br /><br /><div style="width:500px; border-bottom: 1px solid black;">Distribución de alumnado por media de calificaciones:</div><table style="margin-left: 47px">';
+
+			let ajustePorcentajeTramosMedia = 100;
+			sHTML += '<tr><td width="200">Media en intervalo [0, 2\'5):</td><td width="35" align="center">'+tramosMedia[0]+'</td><td width="35" align="center">'+Math.round(tramosMedia[0]*100/(linea-1))+"%</td></tr>";
+			ajustePorcentajeTramosMedia -= Math.round(tramosMedia[0]*100/(linea-1));
+			sHTML += '<tr><td>Media en intervalo [2\'5, 5):</td><td align="center">'+tramosMedia[1]+'</td><td align="center">'+Math.round(tramosMedia[1]*100/(linea-1))+"%</td></tr>";
+			ajustePorcentajeTramosMedia -= Math.round(tramosMedia[1]*100/(linea-1));
+			sHTML += '<tr><td>Media en intervalo [5, 7):</td><td align="center">'+tramosMedia[2]+'</td><td align="center">'+Math.round(tramosMedia[2]*100/(linea-1))+"%</td></tr>";
+			ajustePorcentajeTramosMedia -= Math.round(tramosMedia[2]*100/(linea-1));
+			sHTML += '<tr><td>Media en intervalo [7, 9):</td><td align="center">'+tramosMedia[3]+'</td><td align="center">'+Math.round(tramosMedia[3]*100/(linea-1))+"%</td></tr>";
+			ajustePorcentajeTramosMedia -= Math.round(tramosMedia[3]*100/(linea-1));
+			sHTML += '<tr><td>Media en intervalo [9, 10]:</td><td align="center">'+tramosMedia[4]+'</td><td align="center">'+ajustePorcentajeTramosMedia+"%</td></tr></table>";
+
+
+			alumnado.sort((i,j) => (i[1]<j[1])?1:((j[1]<i[1])?-1:0));
+
+			sHTML += '<br /><div style="width:440px; border-bottom: 1px solid black;">Alumnado con mejor media de calificaciones:</div><table style="margin-left: 47px">';
+
+			let alumnadoMejorMedia = (linea-1);
+			
+			//Si hay más de 40 alumnos/as, suponemos que es la exportación de calificaciones de un curso
+			//y se muestran los 10 mejores alumnos/as por media de calificaciones.
+			if (linea-1 > 40) {
+				alumnadoMejorMedia = 10;
+			//Si hay más de 5 alumnos/as, suponemos que es la exportación de calificaciones de un grupo
+			//y se muestran los 5 mejores alumnos/as por media de calificaciones.
+			} else if (linea-1 > 5) {
+				alumnadoMejorMedia = 5;
+			}
+
+			for (let i = 0; i < alumnadoMejorMedia; i++)
+				sHTML += '<tr><td>'+alumnado[i][0]+'</td><td width="70" align="center">'+alumnado[i][1]+"</td></tr>";
+
+			let timeStamp = new Date();
+			sHTML += '</table><div style="font-size:smaller;margin-left:375pt;">Generado con GEEr v1 - '+timeStamp.toLocaleString()+'</div></body>';
+
+    		document.getElementById('entrada').style.display = 'none';
+			let iframe = document.createElement('iframe');
+			iframe.setAttribute('id', 'ifsda');
+			document.getElementById('salida').appendChild(iframe);
+      		iframe.setAttribute('style','height:350pt;width:730pt;');
+			iframe.contentWindow.document.open();
+			iframe.contentWindow.document.write(sHTML);
+			iframe.contentWindow.document.close();
+			document.getElementById('salida').style.display = '';
+
+		}
+
+	</script>
+</head>
+<body>
+	<h1>GEEr - Generador de Estadísticas de Evaluación para raíces</h1>
+	<div id="entrada">
+	Selecciona el fichero .csv de la exportación de datos de evaluación de raíces.<br />
+	<input type="file" id="selectorFicheros" accept=".csv"><br />
+	Los datos exportados son de la <select id="evaluac">
+		<option value="PRIMERA EVALUACIÓN">PRIMERA EVALUACIÓN</option>
+		<option value="SEGUNDA EVALUACIÓN">SEGUNDA EVALUACIÓN</option>
+		<option value="TERCERA EVALUACIÓN">TERCERA EVALUACIÓN</option>
+		<option value="EVALUACIÓN FINAL">EVALUACIÓN FINAL</option>
+		<option value="EVALUACIÓN ORDINARIA">EVALUACIÓN ORDINARIA</option>
+		<option value="EVALUACIÓN EXTRAORDINARIA">EVALUACIÓN EXTRAORDINARIA</option>
+	</select>
+	</div>
+	<div id="salida" style="display:none">Unidad: <input type="text" id="unidad" size="10" /> <a href="#" class="bt" id="btImp">&#128228; Imprimir para guardar como PDF</a> <a href="#" class="bt" id="btReset" style="margin-left: 230pt">&#9194; Generar otras estadísticas</a> 
+		<br /><br /></div>
+	<h2>¿Qué es GEEr?, ¿para qué lo puedo utilizar?</h2>
+	<p>GEEr es una aplicación que permite obtener estadísticas de evaluación a partir de los datos exportados desde raíces, la aplicación de gestión educativa de la Comunidad de Madrid. SICE, la anterior aplicación de gestión, permitía elaborar unos informes con estadísticas de evaluación, que facilitaban el análisis de los resultados de una evaluación: alumnado con calificación positiva o negativa en cada materia y distribución del alumnado por número de materias suspensas.</p>
+	<p>GEEr genera estadísticas de evaluación más completas: además de las que calculaba SICE, media de calificaciones por materia, media de suspensos por alumno o alumna, distribución del alumnado por media de calificaciones y alumnado con mejor calificación media. Si consideras necesario cualquier otro análisis, puedes contactar con el autor y proponerlo para que sea incorporado en futuras versiones.
+	</p>
+	<h2>¿Cómo funciona GEEr?, ¿es seguro utilizarlo?</h2>
+	<p>Para obtener estadísticas, debes acceder en raíces a los datos de evaluación que quieras tratar y exportarlos: en la página de <i>Evaluación de alumnos/as por materias</i>, haz click en el triángulo amarillo del título y después click en el icono <i>Exportar datos</i>. En la nueva página, debes escoger <i>Exportar los datos al formato: Fichero CSV</i>. Confirma con un click en el icono del disquete de la esquina superior derecha y después selecciona ese fichero <i>.csv</i> que se ha descargado con el selector que hay más arriba. GEEr permite obtener estadísticas a partir de cualquier tipo de evaluación: de una unidad, de una materia de una unidad, de todas las unidades de un curso... y para cualquier etapa educativa gestionada desde raíces.</p>
+	<p>GEEr es tan seguro como utilizar tu ordenador, portátil o dispositivo: se ejecuta en tu navegador y <strong>no almacena ni envía por internet ningún dato</strong> que facilites. Utilizando JavaScript, abre el fichero de exportación, analiza los datos, genera el informe, que luego puedes imprimir en formato PDF, y los datos se destruyen cuando visitas otra página, cierras la pestaña o el navegador o solicitas otras estadísticas. Puedes probar a poner el modo avión o desconectar el cable de red y la aplicación funcionará igualmente. Puedes presionar <i>Ctrl+U</i> para revisar el código fuente de la aplicación. GEEr no enlaza con ningún recurso externo ni utiliza ninguna librería para garantizar su seguridad. Puedes descargar el fichero .html, guardarlo en tu ordenador y seguirá funcionando.</p>
+	<h2>¿Por qué aparecen códigos o abreviaturas en la tabla de materias, ámbitos o módulos?</h2>
+	<p>En esta versión, solo está disponible el catálogo de materias y ámbitos de ESO, PMAR y Bachillerato ordinario. Como la aplicación no tiene el catálogo de materias de la etapa educativa de la que has solicitado el análisis, la aplicación muestra las abreviaturas de la exportación de raíces. Si trabajas en un centro con otra etapa educativa, puedes contribuir facilitando al autor la exportación de las materias, para cada curso, que puedes obtener en <i>raíces &rarr; Centro &rarr; Cursos impartidos en el centro.</i></p>
+	<h2>Autoría y licencia</h2>
+	<p>GEEr ha sido programado por Víctor Barbero, profesor de Música e Informática. Puedes contactar conmigo a través de <a href="mailto:vbarbero@gmail.com">vbarbero@gmail.com</a> para comunicar sugerencias, mejoras, quejas y algún cotilleo. También puedes revisar el código, proponer mejoras o hacer un pull request en github.</p>
+	<p>El autor no asume ninguna responsabilidad por algún error en el análisis, por las consecuencias que pueda tener revisar los resultados o cualquier otra incidencia derivada del uso de esta aplicación. El autor ha realizado esta aplicación en su tiempo libre, sin ninguna relación con la Administración.</p>
+	<p>GEEr se distribuye bajo <a href="https://www.gnu.org/licenses/gpl-3.0.html">licencia GPL</a>.</p>
+	<script>
+		document.getElementById('btImp').addEventListener('click', function u(e) {
+			e.preventDefault();
+			document.getElementById('ifsda').contentWindow.print();
+		});
+		document.getElementById('btReset').addEventListener('click', function u(e) {
+			document.getElementById('salida').removeChild(document.getElementById('ifsda'));
+			document.getElementById('entrada').style.display = '';
+			document.getElementById('salida').style.display = 'none';
+			document.getElementById('selectorFicheros').value = '';
+			document.getElementById('unidad').value = '';
+		});
+		document.getElementById('unidad').addEventListener('input', function u() {
+			if (this.value.length > 0)
+				document.getElementById('ifsda').contentWindow.document.getElementById('cUnidad').innerHTML = this.value+' - ';
+			else
+				document.getElementById('ifsda').contentWindow.document.getElementById('cUnidad').innerHTML = '';
+		});
+    	document.getElementById('selectorFicheros').addEventListener('change', function u() {
+
+      		if (this.files.length === 0) {
+      			return;
+      		}
+
+      		let nombreFichero = this.files[0].name.slice(0,-4);
+      		if (!nombreFichero.startsWith("EvalComp"))
+      			document.getElementById('unidad').value = nombreFichero;
+
+      		reader.readAsText(this.files[0], 'windows-1252');
+
+    	});
+
+    	//Función que devuelve el nombre de una materia, ámbito o módulo según su abreviatura.
+    	//Contiene la exportación de materias y ámbitos en raíces para ESO, PMAR y Bachillerato ordinario para el curso 2021/22.
+    	function nombreMateria(m) {
+    		switch (m) {
+    			case 'EF': return 'Educación Física';
+				case 'EPVA': return 'Educación Plástica, Visual y Audiovisual';
+				case 'MU': return 'Música';
+				case 'RLCL': return 'Recuperación de Lengua';
+				case 'RMT': return 'Recuperación de Matemáticas';
+				case 'DEP': return 'Deporte';
+				case 'TAJ': return 'Taller de Ajedrez';
+				case '2LE (FR)': return 'Segunda Lengua Extranjera (Francés)';
+				case '2LE (AL)': return 'Segunda Lengua Extranjera(Alemán)';
+				case '2LE (IN)': return 'Segunda Lengua Extranjera (Inglés)';
+				case '2LE (IT)': return 'Segunda Lengua Extranjera (Italiano)';
+				case 'CC': return 'Canto Coral';
+				case 'MLCP1': return 'Materia Libre Configuración Propia 1';
+				case 'MLCP2': return 'Materia Libre Configuración Propia 2';
+				case 'MLCP3': return 'Materia Libre Configuración Propia 3';
+				case 'MLCP4': return 'Materia Libre Configuración Propia 4';
+				case 'MLCP5': return 'Materia Libre Configuración Propia 5';
+				case 'BA': return 'Botánica Aplicada';
+				case 'TAO': return 'Taller de ofimática';
+				case 'IAE': return 'Iniciación a la Actividad Emprendedora';
+				case 'TPR': return 'Tecnología, Programación y Robótica';
+				case 'VE': return 'Valores Éticos';
+				case 'REV': return 'Religión Evangélica';
+				case 'RIS': return 'Religión Islámica';
+				case 'RE (CA)': return 'Religión Católica';
+				case 'RJU': return 'Religión Judía';
+				case 'ALEL (IN)': return 'Ámbito Lenguas Extranjeras (Inglés)';
+				case 'ALEL (FR)': return 'Ámbito Lenguas Extranjeras (Francés)';
+				case 'ALEL (AL)': return 'Ámbito Lenguas Extranjeras (Alemán)';
+				case 'ALEL (IT)': return 'Ámbito Lenguas Extranjeras (Italiano)';
+				case 'ALEL (IA)': return 'Ámbito Lenguas Extranjeras (Inglés Avanzando)';
+				case 'ALSL': return 'Ámbito de Carácter Lingüístico y Social';
+				case 'ACML': return 'Ámbito de Carácter Científico y Matemático';
+				case 'IAEE': return 'Iniciación a la Actividad Emprendedora y Empresarial';
+				case 'AMT3': return 'Ampliación de matemáticas: Resolución de problemas';
+				case 'CUC': return 'Cultura Clásica';
+				case 'CAIE': return 'Comunicación Audiovisual, Imagen y Expresión';
+				case 'TEA': return 'Teatro';
+				case 'RESTOL': return 'Respeto y Tolerancia';
+				case 'ORARER': return 'Oratoria y Retórica';
+				case 'UE': return 'Unión Europea';
+				case 'TAEC': return 'Taller de escritura creativa';
+				case '2LE (AL)': return 'Segunda Lengua Extranjera (Alemán)';
+				case 'APLE': return 'Ampliación de Primera Lengua Extranjera: Inglés';
+				case 'AL3': return 'Tercera Lengua Extranjera: Alemán';
+				case 'FR3': return 'Tercera Lengua Extranjera: Francés';
+				case 'IN3': return 'Tercera Lengua Extranjera: Inglés';
+				case 'IT3': return 'Tercera Lengua Extranjera: Italiano';
+				case 'POR': return 'Tercera Lengua Extranjera: Portugués';
+				case 'TGH': return 'Taller de Geografía e Historia';
+				case '1LEX (AL)': return 'Primera Lengua Extranjera (Alemán)';
+				case '1LEX (FR)': return 'Primera Lengua Extranjera (Francés)';
+				case '1LEX (IN)': return 'Primera Lengua Extranjera (Inglés)';
+				case '1LEX (IT)': return 'Primera Lengua Extranjera (Italiano)';
+				case '1LEX (IA)': return 'Primera Lengua Extranjera (Inglés Avanzado)';
+				case 'LC': return 'Lengua Castellana y Literatura';
+				case 'MA': return 'Matemáticas';
+				case 'FQ': return 'Física y Química';
+				case 'GH': return 'Geografía e Historia';
+				case 'ALS': return 'Ámbito Lingüístico Social';
+				case 'ACM': return 'Ámbito Científico-Matemático';
+				case 'AC': return 'Actividades Complementarias';
+				case 'APR': return 'Ámbito Práctico';
+				case 'ACS': return 'Ámbito de Competencia Social';
+				case 'APLIN1': return 'Ampliación de Primera Lengua Extranjera I:Inglés ';
+				case 'TAS': return 'Taller de Astronomía';
+				case 'RE (EV)': return 'Religión Evangélica';
+				case 'MAC': return 'Matemáticas orientadas a las enseñanzas académicas';
+				case 'MAP': return 'Matemáticas orientadas a las enseñanzas aplicadas';
+				case 'BG': return 'Biología y Geología';
+				case 'AMT': return 'Ampliación de matemáticas';
+				case 'AFQ': return 'Ampliación de física y química';
+				case 'DTD': return 'Dibujo Técnico y Diseño';
+				case 'TPRPT': return 'Tecnología, Programación y Robótica: Proyectos Tecnológicos';
+				case 'DEP4': return 'Deporte 4ş';
+				case 'AESD': return 'Arte Escénicas y Danza';
+				case 'CCI': return 'Cultura Científica';
+				case 'FI': return 'Filosofía';
+				case 'TEIC': return 'Tecnología de la Información y la Comunicación';
+				case 'APLIN2': return 'Ampliación de Primera Lengua Extranjera II:Inglés';
+				case 'ABG': return 'Ampliación de biología y geología';
+				case 'TIMP': return 'Taller de Investigación Multidisciplinar del Patrimonio';
+				case 'LAT': return 'Latín';
+				case 'EC': return 'Economía';
+				case 'TC': return 'Tecnología';
+				case 'CAAP': return 'Ciencias aplicadas a la actividad profesional';
+				case 'TI1': return 'Tecnología Industrial I';
+				case 'TICO1': return 'Tecnologías de la Información y la Comunicación I';
+				case 'ANA': return 'Anatomía Aplicada';
+				case '2LE1 (AL)': return 'Segunda Lengua Extranjera I (Alemán)';
+				case '2LE1 (IA)': return 'Segunda Lengua Extranjera I (Inglés Avanzado)';
+				case '2LE1 (FR)': return 'Segunda Lengua Extranjera I (Francés)';
+				case '2LE1 (IN)': return 'Segunda Lengua Extranjera I (Inglés)';
+				case '2LE1 (IT)': return 'Segunda Lengua Extranjera I (Italiano)';
+				case '2LE1 (PO)': return 'Segunda Lengua Extranjera I (Portugués)';
+				case 'AM1': return 'Análisis Musical I';
+				case 'DA1': return 'Dibujo Artístico I';
+				case 'LPM': return 'Lenguaje y Práctica Musical';
+				case 'VOL': return 'Volumen';
+				case 'CAV1': return 'Cultura Audiovisual I';
+				case 'HMC': return 'Historia del Mundo Contemporáneo';
+				case 'MAS1': return 'Matematicas aplicadas a las Ciencias Sociales I';
+				case 'FA1': return 'Fundamentos del Arte I';
+				case 'LA1': return 'Latín I';
+				case 'GR1': return 'Griego I';
+				case 'LIU': return 'Literatura Universal';
+				case '1LEX1 (AL)': return 'Primera Lengua Extranjera I (Alemán)';
+				case '1LEX1 (FR)': return 'Primera Lengua Extranjera I (Francés)';
+				case '1LEX1 (IN)': return 'Primera Lengua Extranjera I (Inglés)';
+				case '1LEX1 (IT)': return 'Primera Lengua Extranjera I (Italiano)';
+				case '1LEX1 (PO)': return 'Primera Lengua Extranjera I (Portugués)';
+				case '1LEX1 (IA)': return 'Primera Lengua Extranjera I (Inglés Avanzado)';
+				case 'APLIN1': return 'Ampliación de Primera Lengua Extranjera I:Inglés';
+				case 'ALCL1': return 'Ampliación Lengua Castellana y Literatura';
+				case 'AFI': return 'Ampliación de Filosofía';
+				case 'DGO': return 'Diseño Gráfico por Ordenador';
+				case 'DT1': return 'Dibujo Técnico I';
+				case 'LC1': return 'Lengua Castellana y Literatura I';
+				case 'MA1': return 'Matemáticas I';
+				case 'MAS1': return 'Matemáticas Aplicadas a las Ciencias Sociales I';
+				case 'CT': return 'Ciencias de la Tierra y del Medio Ambiente';
+				case 'PSI': return 'Psicología';
+				case 'TI2': return 'Tecnología Industrial II';
+				case 'TICO2': return 'Tecnologías de la Información y la Comunicación II';
+				case 'DA2': return 'Dibujo Artístico II';
+				case 'FAG': return 'Fundamentos de Administración y Gestión';
+				case 'HMD': return 'Historia de la Música y de la Danza';
+				case 'IMS': return 'Imagen y Sonido';
+				case 'TEG': return 'Técnicas de Expresión Gráfico-Plástica';
+				case 'AM2': return 'Análisis Musical II';
+				case '2LE2 (IN)': return 'Segunda Lengua Extranjera II (Inglés)';
+				case '2LE2 (FR)': return 'Segunda Lengua Extranjera II (Francés)';
+				case '2LE2 (AL)': return 'Segunda Lengua Extranjera II (Alemán)';
+				case '2LE2 (IT)': return 'Segunda Lengua Extranjera II (Italiano)';
+				case '2LE2 (PO)': return 'Segunda Lengua Extranjera II (Portugués)';
+				case '2LE2 (IA)': return 'Segunda Lengua Extranjera II (Inglés Avanzado)';
+				case 'HF': return 'Historia de la Filosofía';
+				case 'HA': return 'Historia del Arte';
+				case 'GE': return 'Geografía';
+				case 'ECE': return 'Economía de la Empresa';
+				case 'MAS2': return 'Matemáticas Aplicadas a las Ciencias Sociales II';
+				case 'FA2': return 'Fundamentos del Arte II';
+				case 'LA2': return 'Latín II';
+				case 'AES': return 'Artes Escénicas';
+				case 'CAV2': return 'Cultura Audiovisual II';
+				case 'DIS': return 'Diseño';
+				case 'GR2': return 'Griego II';
+				case '1LEX2 (AL)': return 'Primera Lengua Extranjera II (Alemán)';
+				case '1LEX2 (IN)': return 'Primera Lengua Extranjera II (Inglés)';
+				case '1LEX2 (FR)': return 'Primera Lengua Extranjera II Francés';
+				case '1LEX2 (IT)': return 'Primera Lengua Extranjera II (Italiano)';
+				case '1LEX2 (PO)': return 'Primera Lengua Extranjera II (Portugués)';
+				case '1LEX2 (IA)': return 'Primera Lengua Extranjera II (Inglés Avanzado)';
+				case 'EFDEP': return 'Educación Física y Deportiva';
+				case 'FHC': return 'Filosofía e Historia de la Ciencia';
+				case 'DE': return 'Desarrollo Experimental';
+				case 'AM': return 'Ampliación de matemáticas 2ş Bachillerato';
+				case 'FIS': return 'Física';
+				case 'BIO': return 'Biología';
+				case 'DT2': return 'Dibujo Técnico II';
+				case 'GEL': return 'Geología';
+				case 'QUI': return 'Química';
+				case 'LC2': return 'Lengua Castellana y Literatura II';
+				case 'HIE': return 'Historia de España';
+				case 'MA2': return 'Matemáticas II';
+				case '2LE2 (IA)': return 'Segunda Lengua Extranjera II I(Inglés Avanzado)';
+				case '1LEX2 (FR)': return 'Primera Lengua Extranjera II (Francés)';
+				case 'TMU': return 'Taller de Música';
+				case 'RE (IS)': return 'Religión Islámica';
+
+    		}
+    	}
+
+	</script>
+</body>
+</html>	
+
+
