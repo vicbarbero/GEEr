@@ -372,7 +372,7 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 
       		let nombreFichero = this.files[0].name.slice(0,-4);
       		if (!nombreFichero.startsWith("EvalComp"))
-      			document.getElementById('unidad').value = nombreFichero;
+      			document.getElementById('unidad').value = nombreFichero.trim();
 
       		reader.readAsText(this.files[0], 'windows-1252');
 
