@@ -178,7 +178,11 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 						window.alert('La línea '+(linea+1)+' tiene un número de elementos menor que el esperado. Esto, además de indicar que el fichero ha sido manipulado, puede provocar errores en el cálculo de estadísticas.');
 						return;
 					}
-					let notaMedia = (sumaCalificAlum/cuentaCalificAlum).toFixed(2);
+					let notaMedia;
+					if (cuentaCalificAlumn > 0)
+						notaMedia = (sumaCalificAlum/cuentaCalificAlum).toFixed(2);
+					else
+						notaMedia = 0;
 					alumnado[linea-1][1] = notaMedia;
 
 					if (notaMedia >= 9)
