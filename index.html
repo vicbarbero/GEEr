@@ -274,8 +274,8 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 	
 			
 			materias.forEach((m) => {
-			
-				sHTML += '<tr><td width="*">'+nombreMateria(m[0])+'</td><td align="right">- Supera el '+(m[3]*100/m[1]).toFixed(1)+'%</td><td align="right">desv. '+((m[3]*100/m[1])-mediaPorcentajeSuperan).toFixed(2)+"%</td></tr>";
+				if (m[1] > 0)			
+					sHTML += '<tr><td width="*">'+nombreMateria(m[0])+'</td><td align="right">- Supera el '+(m[3]*100/m[1]).toFixed(1)+'%</td><td align="right">desv. '+((m[3]*100/m[1])-mediaPorcentajeSuperan).toFixed(2)+"%</td></tr>";
 			});
 			
 			sHTML += '</table>';
