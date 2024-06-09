@@ -223,6 +223,7 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 			sHTML += '<table width="650pt"><tr><td class="bi bd" valign="bottom">Materia, ámbito o módulo</td><td align="center" class="bi bd">Alumnado<br />calific.</td><td align="center" class="bi bd">Calific.<br />media</td><td colspan="2" class="bi bd" valign="bottom" align="center">Superan</td><td colspan="2" class="bi bd" valign="bottom" align="center">No superan</td><td align="center" class="bi" valign="bottom">Otros</td></tr>';
 
 			let fila = 1;
+			let sumaPorcentajeSuperan = 0
 
 			materias.forEach((m) => {
 
@@ -235,6 +236,7 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 				if (m[1] > 0) {
 					sHTML += '<td align="center" width="60pt" class="bd'+cf+'">'+(m[2]/m[1]).toFixed(2)+"</td>";
 					let porcentajeSuperan = Math.round(m[3]*100/m[1]);
+					sumaPorcentajeSuperan += porcentajeSuperan
 					sHTML += '<td align="center" width="45pt" class="'+cf+'">'+m[3]+'</td><td align="center" width="45pt" class="bd'+cf+'">'+porcentajeSuperan+"%</td>";
 					sHTML += '<td align="center" width="45pt" class="'+cf+'">'+(m[1]-m[3])+'</td><td align="center" width="45pt" class="bd'+cf+'">'+(100-porcentajeSuperan)+"%</td>";
 					sHTML += '<td align="center" width="45pt" class="'+cf+'">'+m[4]+"</td></tr>";
@@ -260,7 +262,23 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 			}
 			sHTML += '<tr><td width="160">Todo superado:</td><td align="center" width="35">'+tramosSuspensos[0]+'</td><td align="center">'+ajustePorcentajeTramosCalificacion+"%</td></tr></table><br />";
 
-			sHTML += 'Media de suspensos por alumno/a: '+(sumaSuspensos/(linea-1)).toFixed(2);
+			sHTML += 'Media de suspensos por alumno/a: '+(sumaSuspensos/(linea-1)).toFixed(2)+'<br /><br />';
+			
+			let mediaPorcentajeSuperan = (sumaPorcentajeSuperan/materias.length);
+			
+			sHTML += 'Media de porcentaje de alumnado que supera las materias, módulos o ámbitos: '+mediaPorcentajeSuperan.toFixed(2)+'%<br /><br />';
+			
+			sHTML += '<div style="width:500px; border-bottom: 1px solid black;">Materias, ámbitos o módulos ordenados por porcentaje de superación:</div><table style="margin-left: 47px">';
+			
+			materias.sort((i,j) => ((i[3]/i[1])>(j[3]/j[1]))?1:(((j[3]/j[1])>(i[3]/i[1]))?-1:0));
+	
+			
+			materias.forEach((m) => {
+			
+				sHTML += '<tr><td width="*">'+nombreMateria(m[0])+'</td><td align="right">- Supera el '+(m[3]*100/m[1]).toFixed(1)+'%</td><td align="right">desv. '+((m[3]*100/m[1])-mediaPorcentajeSuperan).toFixed(2)+"%</td></tr>";
+			});
+			
+			sHTML += '</table>';
 
 			//	0 -> Intervalo [0, 2.5)
 			//	1 -> Intervalo [2.5, 5)
@@ -304,7 +322,7 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 				sHTML += '<tr><td>'+alumnado[i][0]+'</td><td width="70" align="center">'+alumnado[i][1]+"</td></tr>";
 
 			let timeStamp = new Date();
-			sHTML += '</table><div style="font-size:smaller;margin-left:375pt;">Generado con GEEr v1 - '+timeStamp.toLocaleString()+'</div></body>';
+			sHTML += '</table><div style="font-size:smaller;margin-left:375pt;">Generado con GEEr v1.01 - '+timeStamp.toLocaleString()+'</div></body>';
 
     		document.getElementById('entrada').style.display = 'none';
 			let iframe = document.createElement('iframe');
