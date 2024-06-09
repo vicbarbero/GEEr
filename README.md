@@ -12,4 +12,5 @@ Para utilizar la aplicación, haz click sobre el botón verde *Code* y escoge la
 GEEr no almacena ni envía por internet ningún dato que facilites. Utiliza únicamente el motor JavaScript de tu navegador. Se distribuye con licencia GPL.
 
 # *Changelog*
+- Versión actual disponible: v1.01 - publicada el 09/06/2024 - se calcula la media del porcentaje de alumnado que supera cada materia, módulo o ámbito y se muestra una tabla ordenando las materias, módulos o ámbitos respecto a la media. De esta forma, se facilita la elaboración de la memoria final de curso según modelo de la Subdirección General de Inspección Educativa de la Comunidad de Madrid.
 - Versión actual disponible: v1 - publicada el 14/01/2023 - primera versión, modificando el catálogo de materias y ámbitos de ESO, Bachillerato presencial y Diversificación, además de una incidencia al procesar cadenas de apellidos, nombre de alumnado muy largas, truncadas por la exportación de raíces.
