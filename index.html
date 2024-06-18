@@ -159,7 +159,7 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 									materias[columna-2][1]++; //Un alumno/a calificado más.
 									materias[columna-2][2] += 10;
 									materias[columna-2][3]++; //Se acumula el 10.
-									sumaCalificAlum += calificacion;
+									sumaCalificAlum += 10;
 									cuentaCalificAlum++;
 
 								//Si la columna está vacía, el token son solo dos comillas
@@ -302,7 +302,7 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 			sHTML += '<tr><td>Media en intervalo [9, 10]:</td><td align="center">'+tramosMedia[4]+'</td><td align="center">'+ajustePorcentajeTramosMedia+"%</td></tr></table>";
 
 
-			alumnado.sort((i,j) => (i[1]<j[1])?1:((j[1]<i[1])?-1:0));
+			alumnado.sort((i,j) => (parseFloat(i[1])<parseFloat(j[1]))?1:((parseFloat(j[1])<parseFloat(i[1]))?-1:0));
 
 			sHTML += '<br /><div style="width:440px; border-bottom: 1px solid black;">Alumnado con mejor media de calificaciones:</div><table style="margin-left: 47px">';
 
