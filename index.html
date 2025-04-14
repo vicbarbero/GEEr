@@ -352,7 +352,7 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 		<option value="EVALUACIÓN EXTRAORDINARIA">EVALUACIÓN EXTRAORDINARIA</option>
 	</select>
 	</div>
-	<div id="salida" style="display:none">Unidad: <input type="text" id="unidad" size="10" /> <a href="#" class="bt" id="btImp">&#128228; Imprimir para guardar como PDF</a> <a href="#" class="bt" id="btReset" style="margin-left: 230pt">&#9194; Generar otras estadísticas</a> 
+	<div id="salida" style="display:none">Unidad: <input type="text" id="unidad" size="10" /> <a href="#" class="bt" id="btImp">&#128228; Copiar nombre e imprimir para guardar como PDF</a> <a href="#" class="bt" id="btReset">&#9194; Generar otras estadísticas</a>
 		<br /><br /></div>
 	<h2>¿Qué es GEEr?, ¿para qué lo puedo utilizar?</h2>
 	<p>GEEr es una aplicación que permite obtener estadísticas de evaluación a partir de los datos exportados desde raíces, la aplicación de gestión educativa de la Comunidad de Madrid. SICE, la anterior aplicación de gestión, permitía elaborar unos informes con estadísticas de evaluación, que facilitaban el análisis de los resultados de una evaluación: alumnado con calificación positiva o negativa en cada materia y distribución del alumnado por número de materias suspensas.</p>
@@ -371,6 +371,7 @@ GEEr es una aplicación que permite obtener estadísticas de evaluación a parti
 		document.getElementById('btImp').addEventListener('click', function u(e) {
 			e.preventDefault();
 			document.getElementById('ifsda').contentWindow.print();
+			navigator.clipboard.writeText(document.getElementById('unidad').value);
 		});
 		document.getElementById('btReset').addEventListener('click', function u(e) {
 			document.getElementById('salida').removeChild(document.getElementById('ifsda'));
