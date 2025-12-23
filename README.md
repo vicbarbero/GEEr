@@ -12,6 +12,8 @@ Para utilizar la aplicación, haz click sobre el botón verde *Code* y escoge la
 
 GEEr no almacena ni envía por internet ningún dato que facilites. Utiliza únicamente el motor JavaScript de tu navegador. Se distribuye con licencia GPL.
 
+Para un cálculo más ágil, que permite procesar varios ficheros .csv al mismo tiempo y obtener cada .pdf ya generado, está disponible GEEr-py (https://github.com/vicbarbero/geer-py/)
+
 # *Changelog*
 - Versión actual disponible: v1.02 - publicada el 18/06/2024 - se corrige un error por el que el alumnado con media de 10 no aparecía ordenado correctamente en la relación de alumnado con mejores calificaciones.
 - Versión disponible: v1.01 - publicada el 09/06/2024 - se calcula la media del porcentaje de alumnado que supera cada materia, módulo o ámbito y se muestra una tabla ordenando las materias, módulos o ámbitos respecto a la media. De esta forma, se facilita la elaboración de la memoria final de curso según modelo de la Subdirección General de Inspección Educativa de la Comunidad de Madrid.
